@@ -80,10 +80,13 @@ Le préchargeur de Vite lui-même appelle `Promise.allSettled` (Chrome 76) à ch
 
 ```
   ⚠ CSS : fonctionnalités ignorées par Chrome 74 — la mise en page s'y dégrade sans erreur :
-      :is()                     121×  Chrome 88  → la règle entière est ignorée
-      gap                        33×  Chrome 84 en flexbox (66 en grille) → éléments collés
+      :is(.dark *)              121×  Chrome 88  → mode sombre seulement — sans effet sur un terminal en clair
+      max() / min() / clamp()    10×  Chrome 79  → la déclaration est ignorée
+      gap                        26×  Chrome 84 en flexbox (66 en grille) → éléments collés
   ✓ JavaScript compatible Chrome 74 — 38 fichiers vérifiés
 ```
+
+`gap` sur un conteneur flex est le plus visible : les espacements disparaissent. Sur un écran destiné aux terminaux, préférer `space-x-*` / `space-y-*`, que Tailwind 3.4 compile en marges comprises par Chrome 74.
 
 Le JavaScript fait échouer le build ; le CSS n'est qu'un rapport — un CSS dégradé reste utilisable, et le corriger passe par la génération du CSS (Tailwind, PostCSS), pas par une ligne de code.
 

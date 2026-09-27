@@ -48,8 +48,12 @@ const REGLES_JS = [
 
 const REGLES_CSS = [
     { nom: 'inset', depuis: 87, motif: /(?:^|[;{\s])inset\s*:/g, effet: 'positionnement perdu (utiliser top/right/bottom/left)' },
-    { nom: ':is()', depuis: 88, motif: /:is\(/g, effet: 'la règle entière est ignorée' },
-    { nom: ':where()', depuis: 88, motif: /:where\(/g, effet: 'la règle entière est ignorée (space-x/y de Tailwind)' },
+    // `:is(.dark *)` : le mode sombre de Tailwind 3.4, par classe. Ignoré par un
+    // terminal resté en clair, donc sans effet : compté à part pour ne pas
+    // crier au loup — un projet Tailwind en produit une centaine.
+    { nom: ':is()', depuis: 88, motif: /:is\((?!\.dark \*\))/g, effet: 'la règle entière est ignorée' },
+    { nom: ':is(.dark *)', depuis: 88, motif: /:is\(\.dark \*\)/g, effet: 'mode sombre seulement — sans effet sur un terminal en clair', benin: true },
+    { nom: ':where()', depuis: 88, motif: /:where\(/g, effet: 'la règle entière est ignorée (dans Tailwind 3.4 : la remise à zéro de base)' },
     { nom: ':has()', depuis: 105, motif: /:has\(/g, effet: 'la règle entière est ignorée' },
     { nom: 'max() / min() / clamp()', depuis: 79, motif: /(?:max|min|clamp)\(/g, effet: 'la déclaration est ignorée' },
     { nom: 'aspect-ratio', depuis: 88, motif: /aspect-ratio\s*:/g, effet: 'proportions perdues' },
