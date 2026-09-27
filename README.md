@@ -28,7 +28,7 @@ Le dépôt est privé : npm et Composer le **clonent avec les identifiants git d
 ### JavaScript
 
 ```bash
-npm install github:derricknoutais/sunmi-scan#v0.1.0
+npm install github:derricknoutais/sunmi-scan#v0.1.1
 ```
 
 Le lockfile note `git+ssh://git@github.com/…` : c'est l'écriture canonique de npm, pas le protocole employé. `npm ci` essaie HTTPS d'abord, SSH ensuite — il fonctionne sans clé SSH.
@@ -151,7 +151,7 @@ const ecoute = ecouterScanner((code) => chercher(code));
 - **Seule la bande du viseur est décodée**, jamais l'image entière. Sur un rayon, la caméra voit plusieurs étiquettes ; lire la voisine ferait compter la mauvaise pièce. Le cadre affiché est exactement la zone décodée.
 - **Deux lectures identiques de suite** avant de retenir un code.
 - **Les lignes sont moyennées verticalement** avant le décodage 1D : les barres étant verticales, l'information est tout entière horizontale, et ce lissage efface le bruit du capteur sans déplacer un bord. Mesuré : lecture fiable jusqu'à ±40 de bruit par pixel sans, ±110 avec.
-- **ZXing n'est chargé qu'à l'ouverture de la caméra** (120 Ko compressés), et on contourne son `MultiFormatReader`, qui dans la version 0.23 écrit une trace de pile dans la console pour chaque image sans code.
+- **ZXing n'est chargé qu'à l'ouverture de la caméra** (≈ 110 Ko compressés). On appelle directement ses lecteurs 1D et QR plutôt que son `MultiFormatReader`, qui en 0.23 écrit une trace de pile dans la console pour chaque image sans code.
 
 ## Côté serveur : ce qu'un code désigne
 
@@ -192,7 +192,9 @@ $middleware->trustProxies(at: ['127.0.0.1', '::1']);
 
 ```bash
 npm install
-npm test          # compile, puis 25 tests JavaScript sur dist/ et 13 tests PHP
+npm test          # compile, puis 26 tests JavaScript sur dist/ et 13 tests PHP
 ```
 
 Les tests tournent sous Node, sans navigateur ni caméra : le banc fabrique de vrais codes-barres (un encodeur EAN-13 conforme GS1, ZXing-JS n'encodant que les QR) et les décode par le même chemin que la page. `dist/` est versionné : une installation depuis GitHub ne compile rien.
+
+**ZXing reste en 0.21.3.** À partir de la 0.22, son `package.json` exige Node ≥ 24. npm se contente d'un avertissement, mais Yarn 1 refuse alors d'installer tout projet qui dépend de ce paquet sur un serveur en Node 20 — constaté sur un déploiement Forge (Node 20.20.2). Le décodage n'y perd rien : les tests passent à l'identique. `npm test` y veille : il échoue si une dépendance d'exécution exclut Node 20.

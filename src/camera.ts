@@ -121,12 +121,13 @@ export function chargerDecodeur(): Promise<Decodeur> {
         ]);
         indices.set(z.DecodeHintType.TRY_HARDER, true);
 
-        // Pas de `MultiFormatReader` : dans ZXing-JS 0.23, `NotFoundException`
-        // n'hérite pas de `ReaderException`, si bien que ce lecteur journalise
-        // une trace de pile complète pour chaque image SANS code — le cas de
-        // loin le plus fréquent. Dans la boucle caméra, ce serait une vingtaine
-        // de traces par seconde sur le processeur du terminal. Les deux lecteurs
-        // appelés directement ne journalisent rien.
+        // Pas de `MultiFormatReader` : en 0.23, `NotFoundException` n'hérite
+        // pas de `ReaderException`, et ce lecteur journalise une trace de pile
+        // pour chaque image SANS code — le cas de loin le plus fréquent, une
+        // vingtaine de fois par seconde dans la boucle caméra. La 0.21, épinglée
+        // ici, se tait ; mais les deux lecteurs appelés directement ne
+        // journalisent dans aucune version : monter de version ne ramènera pas
+        // ce flot.
         const lecteur1D = new z.MultiFormatOneDReader(indices);
         const lecteurQR = new z.QRCodeReader();
 
