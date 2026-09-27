@@ -1,0 +1,14 @@
+{
+    "name": "derricknoutais/sunmi-scan",
+    "description": "Correspondance entre un code lu au scanner et un catalogue : exacts, écritures équivalentes GS1, propositions.",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "SunmiScan\\": "php/"
+        }
+    }
+}

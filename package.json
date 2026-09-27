@@ -1,0 +1,58 @@
+{
+    "name": "@derricknoutais/sunmi-scan",
+    "version": "0.1.0",
+    "description": "Lire des codes-barres sur terminaux Sunmi — caméra ou scanner intégré — dans une application Laravel + Vue. Compatible avec le WebView Chrome 74 des terminaux.",
+    "type": "module",
+    "private": true,
+    "license": "UNLICENSED",
+    "author": "Derrick Noutais",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./vue": {
+            "types": "./dist/vue.d.ts",
+            "default": "./dist/vue.js"
+        },
+        "./compat": "./compat.js",
+        "./diagnostic.html": "./diagnostic.html",
+        "./package.json": "./package.json"
+    },
+    "sideEffects": [
+        "./compat.js"
+    ],
+    "files": [
+        "dist",
+        "bin",
+        "php",
+        "compat.js",
+        "diagnostic.html",
+        "composer.json",
+        "README.md"
+    ],
+    "bin": {
+        "sunmi-https": "bin/https-local.mjs",
+        "sunmi-verifier": "bin/verifier-cible.mjs"
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "test": "npm run build && node --test test/*.test.mjs && php test/php/correspondance.php",
+        "verifier": "node bin/verifier-cible.mjs dist"
+    },
+    "dependencies": {
+        "@zxing/library": "0.23.0"
+    },
+    "peerDependencies": {
+        "vue": "^3.2"
+    },
+    "peerDependenciesMeta": {
+        "vue": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "typescript": "5.9.3",
+        "vue": "^3.5.13"
+    }
+}

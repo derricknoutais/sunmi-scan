@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnostic navigateur</title>
+<style>
+  /* Rien de moderne ici : cette page doit s'afficher sur le navigateur
+     le plus ancien qu'on puisse rencontrer, puisque c'est précisément
+     lui qu'elle sert à identifier. */
+  body { font-family: -apple-system, Roboto, Arial, sans-serif; margin: 0; padding: 14px; background: #fff; color: #111; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  p.sub { font-size: 13px; color: #666; margin: 0 0 14px; }
+  .ua { font-family: monospace; font-size: 11px; background: #f3f3f3; padding: 10px; border-radius: 6px; word-break: break-all; line-height: 1.5; }
+  .v { font-size: 34px; font-weight: bold; margin: 14px 0 2px; }
+  .vn { font-size: 13px; color: #666; margin: 0 0 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 7px 4px; border-bottom: 1px solid #eee; }
+  td.r { text-align: right; font-weight: bold; white-space: nowrap; }
+  .ok { color: #0a7d3e; }
+  .ko { color: #c00; }
+  .verdict { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 14px; line-height: 1.5; }
+  h2 { font-size: 17px; margin: 28px 0 4px; }
+  #champ { width: 100%; box-sizing: border-box; font-size: 17px; padding: 12px; border: 2px dashed #999; border-radius: 8px; font-family: monospace; }
+  #bilan { margin-top: 12px; padding: 12px; border-radius: 8px; font-size: 14px; line-height: 1.6; background: #f3f3f3; }
+  #journal { font-family: monospace; font-size: 11px; line-height: 1.5; margin-top: 10px; color: #444; max-height: 220px; overflow: auto; }
+</style>
+</head>
+<body>
+<h1>Diagnostic du navigateur</h1>
+<p class="sub">À ouvrir sur le terminal quand un écran reste blanc.</p>
+
+<div class="ua" id="ua">…</div>
+<div class="v" id="ver">…</div>
+<p class="vn">version du moteur détectée</p>
+
+<table id="t"></table>
+<div class="verdict" id="verdict"></div>
+
+<h2>Test du scanner</h2>
+<p class="sub">Appuyez sur le bouton de scan du terminal et lisez n'importe quel code-barres. La page dit comment le scanner livre le code.</p>
+<input id="champ" type="text" inputmode="none" autocomplete="off" placeholder="Le code lu s'affichera ici">
+<div id="bilan">En attente d'une lecture…</div>
+<div id="journal"></div>
+
+<script>
+/* ES5 strict : pas de fléchées, pas de const, pas de template strings. */
+function syntaxe(code) {
+  try { new Function(code); return true; } catch (e) { return false; }
+}
+function existe(f) {
+  try { return !!f(); } catch (e) { return false; }
+}
+
+var ua = navigator.userAgent;
+document.getElementById('ua').firstChild.nodeValue = ua;
+
+var m = ua.match(/Chrom(e|ium)\/(\d+)/);
+var chrome = m ? parseInt(m[2], 10) : 0;
+document.getElementById('ver').firstChild.nodeValue = chrome ? 'Chrome ' + chrome : 'inconnue';
+
+var tests = [
+  ['modules ES',            function () { return 'noModule' in document.createElement('script'); }, 61],
+  ['syntaxe  ??',           function () { return syntaxe('return null ?? 1'); }, 80],
+  ['syntaxe  ?.',           function () { return syntaxe('return ({}).a?.b'); }, 80],
+  ['syntaxe  fléchée',      function () { return syntaxe('return (function(){return 1})'); }, 45],
+  ['globalThis',            function () { return typeof globalThis !== 'undefined'; }, 71],
+  ['Object.fromEntries',    function () { return !!Object.fromEntries; }, 73],
+  ['Array.prototype.flat',  function () { return !![].flat; }, 69],
+  ['Array.prototype.at',    function () { return !![].at; }, 92],
+  ['String.replaceAll',     function () { return !!''.replaceAll; }, 85],
+  ['Promise.allSettled',    function () { return !!Promise.allSettled; }, 76],
+  ['Proxy (requis par Vue)', function () { return typeof Proxy !== 'undefined'; }, 49],
+  ['fetch',                 function () { return typeof fetch !== 'undefined'; }, 42],
+  ['IntersectionObserver',  function () { return typeof IntersectionObserver !== 'undefined'; }, 51]
+];
+
+var t = document.getElementById('t');
+var manques = [];
+for (var i = 0; i < tests.length; i++) {
+  var nom = tests[i][0], ok = existe(tests[i][1]), depuis = tests[i][2];
+  if (!ok) { manques.push(nom + ' (Chrome ' + depuis + ')'); }
+  var tr = t.insertRow(-1);
+  tr.insertCell(-1).appendChild(document.createTextNode(nom));
+  var c = tr.insertCell(-1);
+  c.className = 'r ' + (ok ? 'ok' : 'ko');
+  c.appendChild(document.createTextNode(ok ? 'oui' : 'NON'));
+}
+
+var v = document.getElementById('verdict');
+if (manques.length === 0) {
+  v.style.background = '#e7f6ec';
+  v.appendChild(document.createTextNode(
+    'Tout est supporté. Si un écran reste blanc, la cause est ailleurs — réseau, ou erreur applicative.'));
+} else {
+  v.style.background = '#fdeaea';
+  v.appendChild(document.createTextNode(
+    manques.length + ' fonctionnalité(s) manquante(s) : ' + manques.join(' · ') +
+    '. Le bundle doit être compilé plus bas, ou recevoir des polyfills.'));
+}
+
+/* ---------------------------------------------------------------------------
+ * Test du scanner. Deux modes possibles selon le réglage du terminal :
+ *  - clavier simulé : des événements keydown, un par caractère, très rapides ;
+ *  - saisie directe : le texte arrive d'un bloc dans le champ, sans keydown.
+ * Le paquet sunmi-scan sait lire les deux ; ce test dit lequel est actif, et surtout la
+ * CADENCE, dont dépend le tri entre scanner et frappe humaine (50 ms max).
+ * ------------------------------------------------------------------------- */
+var champ = document.getElementById('champ');
+var bilan = document.getElementById('bilan');
+var journal = document.getElementById('journal');
+var touches = [];
+var saisies = [];
+var minuteur = null;
+var ECART_MAX_STORIT = 50;
+
+function horodatage() { return window.performance && performance.now ? performance.now() : new Date().getTime(); }
+
+function noter(ligne) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(ligne));
+  journal.insertBefore(div, journal.firstChild);
+  while (journal.childNodes.length > 40) { journal.removeChild(journal.lastChild); }
+}
+
+function relancer() {
+  if (minuteur) { clearTimeout(minuteur); }
+  minuteur = setTimeout(conclure, 400);
+}
+
+function conclure() {
+  minuteur = null;
+  var caracteres = [];
+  var ecarts = [];
+  var suffixe = 'aucun';
+  for (var i = 0; i < touches.length; i++) {
+    var t = touches[i];
+    if (t.key && t.key.length === 1) {
+      if (caracteres.length) { ecarts.push(Math.round(t.t - caracteres[caracteres.length - 1].t)); }
+      caracteres.push(t);
+    } else if (t.key === 'Enter') { suffixe = 'Entrée'; }
+    else if (t.key === 'Tab') { suffixe = 'Tabulation'; }
+  }
+
+  var texte = '';
+  var mode = '';
+  if (caracteres.length >= 3) {
+    mode = 'CLAVIER SIMULÉ';
+    for (var j = 0; j < caracteres.length; j++) { texte += caracteres[j].key; }
+  } else if (saisies.length) {
+    mode = 'SAISIE DIRECTE';
+    for (var k = 0; k < saisies.length; k++) { texte += saisies[k]; }
+  } else {
+    mode = 'rien d’exploitable';
+  }
+
+  var max = 0, somme = 0;
+  for (var e = 0; e < ecarts.length; e++) { somme += ecarts[e]; if (ecarts[e] > max) { max = ecarts[e]; } }
+  var moyenne = ecarts.length ? Math.round(somme / ecarts.length) : 0;
+
+  var lignes = ['Mode : ' + mode, 'Code : ' + (texte || '—').replace(/[\r\n]/g, '')];
+  if (mode === 'CLAVIER SIMULÉ') {
+    lignes.push('Cadence : ' + moyenne + ' ms en moyenne, ' + max + ' ms au plus lent');
+    lignes.push('Suffixe : ' + suffixe);
+    lignes.push(max <= ECART_MAX_STORIT
+      ? '✓ Le scanner sera reconnu comme tel.'
+      : '✗ Trop lent pour être distingué d’une frappe (seuil ' + ECART_MAX_STORIT + ' ms) : envoyez cette capture.');
+  } else if (mode === 'SAISIE DIRECTE') {
+    lignes.push('✓ Reconnu : un champ invisible reçoit ce texte.');
+  }
+
+  while (bilan.firstChild) { bilan.removeChild(bilan.firstChild); }
+  for (var l = 0; l < lignes.length; l++) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(lignes[l]));
+    bilan.appendChild(d);
+  }
+  bilan.style.background = mode === 'rien d’exploitable' ? '#fdeaea' : '#e7f6ec';
+
+  touches = [];
+  saisies = [];
+  champ.value = '';
+}
+
+window.addEventListener('keydown', function (ev) {
+  var t = horodatage();
+  touches.push({ key: ev.key, t: t });
+  noter('keydown  key=' + ev.key + '  keyCode=' + ev.keyCode);
+  if (ev.key === 'Enter') { ev.preventDefault(); }
+  relancer();
+}, true);
+
+champ.addEventListener('input', function (ev) {
+  var donnee = ev.data || '';
+  if (donnee.length > 1) { saisies.push(donnee); }
+  noter('input    type=' + (ev.inputType || '?') + '  data=' + (ev.data === null ? 'null' : JSON.stringify(ev.data)));
+  relancer();
+});
+
+champ.focus();
+document.addEventListener('click', function () { champ.focus(); });
+</script>
+</body>
+</html>
