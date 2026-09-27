@@ -23,7 +23,7 @@ Né dans Storit (inventaire tournant STA), extrait pour servir partout.
 
 ## Installation
 
-Le dépôt est privé : npm et Composer le **clonent avec les identifiants git de la machine** — le trousseau sur un Mac. Aucun jeton npm ni Composer à configurer.
+Le dépôt est public : npm et Composer l'installent **sans identifiants ni jeton**, sur un poste comme sur un serveur.
 
 ### JavaScript
 
@@ -31,7 +31,7 @@ Le dépôt est privé : npm et Composer le **clonent avec les identifiants git d
 npm install github:derricknoutais/sunmi-scan#v0.1.1
 ```
 
-Le lockfile note `git+ssh://git@github.com/…` : c'est l'écriture canonique de npm, pas le protocole employé. `npm ci` essaie HTTPS d'abord, SSH ensuite — il fonctionne sans clé SSH.
+Le lockfile note `git+ssh://git@github.com/…` : c'est l'écriture canonique de npm, pas le protocole employé. `npm ci` passe par HTTPS et n'a besoin d'aucune clé SSH.
 
 En développement, à côté du projet : `npm install ../sunmi-scan`.
 
@@ -45,13 +45,9 @@ En développement, à côté du projet : `npm install ../sunmi-scan`.
 composer require derricknoutais/sunmi-scan:^0.1
 ```
 
-**`git`, pas `vcs`.** Pour une adresse GitHub, un dépôt `vcs` fait télécharger l'archive par l'API GitHub, qui répond 404 à un dépôt privé sans jeton Composer — même avec `"no-api": true` (constaté avec Composer 2.10). Un dépôt `git` clone, avec les identifiants git de la machine.
+**`git` plutôt que `vcs`.** Pour une adresse GitHub, un dépôt `vcs` passe par l'API GitHub, limitée sans jeton à 60 requêtes par heure et par adresse IP. Un dépôt `git` clone directement, sans passer par l'API.
 
 En développement : `{ "type": "path", "url": "../sunmi-scan" }`. ⚠️ Un dépôt `path` est un lien symbolique : il n'existe pas sur un serveur de production. Repasser au dépôt `git` avant de déployer.
-
-### Sur un serveur
-
-Il doit pouvoir cloner ce dépôt, en plus de celui du projet. Une clé de déploiement GitHub ne s'attache qu'à **un seul** dépôt : si celle du serveur sert déjà au projet, le plus simple est un jeton GitHub à granularité fine, en lecture seule sur les deux dépôts, enregistré comme identifiant git du serveur — npm et Composer le prennent tous les deux.
 
 ## Configurer le projet pour les terminaux
 
